@@ -1,0 +1,27 @@
+name: 'Auditmation SBOM Recorder'
+description: 'Creates a pipeline and uploads SBOM files to Auditmation'
+inputs:
+  api-key:
+    description: 'Auditmation API key'
+    required: true
+  org-id:
+    description: 'Auditmation Org ID'
+    required: true
+  boundary-id:
+    description: 'Boundary ID, required if more than one boundary exists'
+    required: false
+    default: ''
+  url:
+    description: 'Auditmation API key'
+    required: true
+    default: 'https://nf.auditmation.io'
+  pkg-name:
+    description: 'NPM package to upload the SBOM from'
+    required: true
+  file-path:
+    description: 'Path inside the package to the SBOM file'
+    required: true
+    default: bom.json
+runs:
+  using: 'node16'
+  main: 'dist/index.js'

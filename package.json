@@ -1,0 +1,38 @@
+{
+  "name": "@auditmation/auditmation-sbom-recorder",
+  "version": "0.0.1",
+  "description": "GitHub action for uploading sbom files to Auditmation",
+  "main": "index.js",
+  "scripts": {
+    "build": "ncc build src/index.js --minify",
+    "clean": "rimraf dist",
+    "test": "mocha --inline-diffs --reporter=list test/*.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/auditmation/auditmation-sbom-recorder.git"
+  },
+  "author": "cbrothers@auditmation.io",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/auditmation/auditmation-sbom-recorder/issues"
+  },
+  "homepage": "https://github.com/auditmation/auditmation-sbom-recorder#readme",
+  "dependencies": {
+    "@actions/core": "^1.10.0",
+    "@actions/github": "^5.1.1",
+    "@auditmation/module-auditmation-auditmation-file-service": "^0.11.2",
+    "@auditmation/module-auditmation-auditmation-platform": "^2.5.5",
+    "axios": "^0.27.2",
+    "md5-file": "^5.0.0"
+  },
+  "devDependencies": {
+    "@actions/exec": "^1.1.1",
+    "@vercel/ncc": "^0.36.1",
+    "chai": "^4.3.7",
+    "eslint": "^8.42.0",
+    "eslint-config-airbnb": "^19.0.4",
+    "mocha": "^10.2.0",
+    "rimraf": "^5.0.1"
+  }
+}
