@@ -1,12 +1,12 @@
 const core = require('@actions/core');
 const exec = require('@actions/exec');
-const { TimeZone, URL, UUID } = require('@auditmation/types-core-js');
+const { TimeZone, URL } = require('@auditmation/types-core-js');
 const axios = require('axios');
 const fs = require('fs');
 const md5File = require('md5-file');
 const path = require('path');
 
-const { newFileService, RetentionPolicy } = require('@auditmation/module-auditmation-auditmation-file-service');
+const { newFileService } = require('@auditmation/module-auditmation-auditmation-file-service');
 const { newPlatform, PipelineAdminStatusEnum, PipelineFormatEnum, PipelineJobStatusEnum } = require('@auditmation/module-auditmation-auditmation-platform');
 
 // const pipelineId = 'd03c1de1-9961-476f-93d1-bac0f8444040';
@@ -228,4 +228,9 @@ async function run() {
   }
 }
 
-run();
+try {
+  run();
+} catch (err) {
+  console.log(err);
+  console.log(err.stack);
+}
