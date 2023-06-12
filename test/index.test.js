@@ -9,7 +9,7 @@ describe('Auditmation SBOM Recorder Test', function () {
       'INPUT_ORG-ID': process.env.ORG_ID,
       'INPUT_BOUNDARY-ID': '371d39bb-4afc-4640-8aac-4225305046d6',
       INPUT_URL: process.env.URL,
-      'INPUT_PKG-NAME': '@auditmation/hub-client',
+      'INPUT_PACKAGE': '@auditmation/hub-client',
       'INPUT_FILE-PATH': 'bom.json',
       ...process.env,
     };

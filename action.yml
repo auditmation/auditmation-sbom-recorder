@@ -15,7 +15,7 @@ inputs:
     description: 'Auditmation API key'
     required: true
     default: 'https://nf.auditmation.io'
-  pkg-name:
+  package:
     description: 'NPM package to upload the SBOM from'
     required: true
   file-path:
