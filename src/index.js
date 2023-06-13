@@ -51,10 +51,7 @@ async function run() {
       cwd: process.cwd(),
     });
     const cwd = process.cwd();
-    console.log(cwd, 'package', filePath);
     const sbomFilePath = path.join(cwd, 'package', filePath);
-    console.log(process.cwd());
-    console.log(sbomFilePath);
     if (!fs.existsSync(sbomFilePath)) {
       throw new Error(`File not found: ${sbomFilePath}`);
     }
