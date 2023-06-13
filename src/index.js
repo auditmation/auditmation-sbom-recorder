@@ -22,101 +22,101 @@ const evidenceDefinitionId = '209010da-70d1-5fa5-babf-91974fa13bd2';
 const productId = '6a70bddd-99ae-5275-95a5-4244a4228092';
 
 async function run() {
-  const pkgName = core.getInput('package');
-  const filePath = core.getInput('file-path');
-  const apiKey = core.getInput('api-key');
-  const orgId = core.getInput('org-id');
-  let url = await URL.parse(core.getInput('url'));
-  const hostname = url.hostname.startsWith('api') ? url.hostname: `api.${url.hostname}`;
-  url = await URL.parse(`${url.protocol}://${hostname}`);
-  let boundaryId = core.getInput('boundary-id');
-
-  await exec.exec('npm', ['--silent', 'pack', pkgName]);
-  const filePrefix = pkgName.replace('@', '').replace('/', '-');
-  await exec.exec('sh -c', [`tar zxf ${filePrefix}*.tgz`]);
-  const sbomFilePath = path.join(process.cwd(), 'package', filePath);
-  if (!fs.existsSync(sbomFilePath)) {
-    throw new Error(`File not found: ${sbomFilePath}`);
-  }
-
-  const axiosInstance = axios.create({
-    baseURL: url.toString(),
-    headers: {
-      Authorization: `APIKey ${apiKey}`,
-      'dana-org-id': orgId.toString(),
-    },
-  });
-
-  const fileService = newFileService();
-  await fileService.connect({
-    apiKey,
-    orgId,
-    url: await URL.parse(`${url.toString()}file-service`),
-  });
-
-  const platform = newPlatform();
-  await platform.connect({
-    apiKey,
-    orgId,
-    url: await URL.parse(`${url.toString()}platform`),
-  });
-
-  // Get or create boundary?
-  if (!boundaryId) {
-    const boundaries = await platform.getBoundaryApi().listBoundaries();
-    boundaryId = boundaries.items[0].id;
-  }
-  console.log('Using boundary:', boundaryId);
-
-  // Find the product
-  await platform.getBoundaryApi().createBoundaryProduct(boundaryId, {
-    name: 'npm',
-    description: '',
-    productIds: [productId],
-  });
-
-  let boundaryProductId;
-  const boundaryProducts = await platform.getBoundaryApi().listBoundaryProductsByBoundary(boundaryId);
-  await boundaryProducts.forEach((product) => {
-    if (product.productId.toString() === productId) {
-      boundaryProductId = product.id;
-    }
-  });
-  console.log('Boundary product:', boundaryProductId);
-
-  // Create a pipeline
-  const pipelines = await platform.getPipelineApi().getAllPipelines(
-    undefined,
-    undefined,
-    [filePrefix],
-    boundaryId,
-    productId,
-    PipelineAdminStatusEnum.On,
-  );
-
-  let pipeline;
-  if (pipelines.items.length === 0) {
-    pipeline = await platform.getPipelineApi().createPipeline({
-      name: `SBOM - ${filePrefix}`,
-      productId,
-      boundaryId,
-      description: `Auto generated pipeline from ${filePrefix} SBOMs`,
-      timezone: TimeZone.Utc,
-      targets: {},
-      moduleName: 'npm',
-      format: PipelineFormatEnum.File,
-    });
-  } else {
-    [pipeline] = pipelines.items;
-  }
-  // console.log('Pipeline', pipeline);
-  const pipelineId = pipeline.id;
-  pipeline.adminStatus = PipelineAdminStatusEnum.On;
-  pipeline = await platform.getPipelineApi().updatePipeline(pipelineId, pipeline);
-
-  console.log('Using pipeline:', pipelineId);
-
   try {
+    const pkgName = core.getInput('package');
+    const filePath = core.getInput('file-path');
+    const apiKey = core.getInput('api-key');
+    const orgId = core.getInput('org-id');
+    let url = await URL.parse(core.getInput('url'));
+    const hostname = url.hostname.startsWith('api') ? url.hostname: `api.${url.hostname}`;
+    url = await URL.parse(`${url.protocol}://${hostname}`);
+    let boundaryId = core.getInput('boundary-id');
+
+    await exec.exec('npm', ['--silent', 'pack', pkgName]);
+    const filePrefix = pkgName.replace('@', '').replace('/', '-');
+    await exec.exec('sh -c', [`tar zxf ${filePrefix}*.tgz`]);
+    const sbomFilePath = path.join(process.cwd(), 'package', filePath);
+    if (!fs.existsSync(sbomFilePath)) {
+      throw new Error(`File not found: ${sbomFilePath}`);
+    }
+
+    const axiosInstance = axios.create({
+      baseURL: url.toString(),
+      headers: {
+        Authorization: `APIKey ${apiKey}`,
+        'dana-org-id': orgId.toString(),
+      },
+    });
+
+    const fileService = newFileService();
+    await fileService.connect({
+      apiKey,
+      orgId,
+      url: await URL.parse(`${url.toString()}file-service`),
+    });
+
+    const platform = newPlatform();
+    await platform.connect({
+      apiKey,
+      orgId,
+      url: await URL.parse(`${url.toString()}platform`),
+    });
+
+    // Get or create boundary?
+    if (!boundaryId) {
+      const boundaries = await platform.getBoundaryApi().listBoundaries();
+      boundaryId = boundaries.items[0].id;
+    }
+    console.log('Using boundary:', boundaryId);
+
+    // Find the product
+    await platform.getBoundaryApi().createBoundaryProduct(boundaryId, {
+      name: 'npm',
+      description: '',
+      productIds: [productId],
+    });
+
+    let boundaryProductId;
+    const boundaryProducts = await platform.getBoundaryApi().listBoundaryProductsByBoundary(boundaryId);
+    await boundaryProducts.forEach((product) => {
+      if (product.productId.toString() === productId) {
+        boundaryProductId = product.id;
+      }
+    });
+    console.log('Boundary product:', boundaryProductId);
+
+    // Create a pipeline
+    const pipelines = await platform.getPipelineApi().getAllPipelines(
+      undefined,
+      undefined,
+      [filePrefix],
+      boundaryId,
+      productId,
+      PipelineAdminStatusEnum.On,
+    );
+
+    let pipeline;
+    if (pipelines.items.length === 0) {
+      pipeline = await platform.getPipelineApi().createPipeline({
+        name: `SBOM - ${filePrefix}`,
+        productId,
+        boundaryId,
+        description: `Auto generated pipeline from ${filePrefix} SBOMs`,
+        timezone: TimeZone.Utc,
+        targets: {},
+        moduleName: 'npm',
+        format: PipelineFormatEnum.File,
+      });
+    } else {
+      [pipeline] = pipelines.items;
+    }
+    // console.log('Pipeline', pipeline);
+    const pipelineId = pipeline.id;
+    pipeline.adminStatus = PipelineAdminStatusEnum.On;
+    pipeline = await platform.getPipelineApi().updatePipeline(pipelineId, pipeline);
+
+    console.log('Using pipeline:', pipelineId);
+
     // create pipeline job
     const job = await platform.getPipelineJobApi().createPipelineJob({
       pipelineId,
@@ -233,6 +233,7 @@ async function run() {
   } catch (err) {
     console.log(err);
     console.log(err.stack);
+    process.exit(1);
   }
 }
 
