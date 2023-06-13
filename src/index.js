@@ -32,7 +32,7 @@ async function run() {
     let boundaryId = core.getInput('boundary-id');
 
     let fileName = '';
-    const out = await exec.exec('npm', ['pack', pkgName], {
+    await exec.exec('npm', ['pack', pkgName], {
       listeners: {
         stdout: (data) => {
           fileName += data.toString();
@@ -51,6 +51,8 @@ async function run() {
       cwd: process.cwd(),
     });
     const sbomFilePath = path.join(process.cwd(), 'package', filePath);
+    console.log(process.cwd());
+    console.log(sbomFilePath);
     if (!fs.existsSync(sbomFilePath)) {
       throw new Error(`File not found: ${sbomFilePath}`);
     }
