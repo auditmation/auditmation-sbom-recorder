@@ -32,7 +32,7 @@ async function run() {
     url = await URL.parse(`${url.protocol}://${hostname}`);
     let boundaryId = core.getInput('boundary-id');
 
-    await exec.exec('npm', ['--silent', 'pack', pkgName]);
+    await exec.exec('npm', ['pack', pkgName]);
     const filePrefix = pkgName.replace('@', '').replace('/', '-');
     await exec.exec('sh -c', [`tar zxf ${filePrefix}*.tgz`]);
     const sbomFilePath = path.join(process.cwd(), 'package', filePath);
