@@ -45,9 +45,11 @@ async function run() {
       cwd: process.cwd(),
     });
     const sbomFilePath = path.join(process.cwd(), 'package', filePath);
+    /*
     if (!fs.existsSync(sbomFilePath)) {
       throw new Error(`File not found: ${sbomFilePath}`);
     }
+    */
 
     const axiosInstance = axios.create({
       baseURL: url.toString(),
