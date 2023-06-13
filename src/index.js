@@ -32,9 +32,17 @@ async function run() {
     url = await URL.parse(`${url.protocol}://${hostname}`);
     let boundaryId = core.getInput('boundary-id');
 
-    await exec.exec('npm', ['pack', pkgName]);
+    let fileName = '';
+    const out = await exec.exec('npm', ['pack', pkgName], {
+      listeners: {
+        stdout: (data) => {
+          fileName += data.toString();
+        },
+      },
+    });
+    console.log("OUT", fileName);
     const filePrefix = pkgName.replace('@', '').replace('/', '-');
-    await exec.exec('sh -c', [`tar zxf ${filePrefix}*.tgz`]);
+    await exec.exec('sh -c', [`tar zxf ${fileName}`]);
     const sbomFilePath = path.join(process.cwd(), 'package', filePath);
     if (!fs.existsSync(sbomFilePath)) {
       throw new Error(`File not found: ${sbomFilePath}`);
