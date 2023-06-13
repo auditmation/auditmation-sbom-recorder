@@ -9,7 +9,15 @@ const path = require('path');
 const { newFileService } = require('@auditmation/module-auditmation-auditmation-file-service');
 const { newPlatform, PipelineAdminStatusEnum, PipelineFormatEnum, PipelineJobStatusEnum } = require('@auditmation/module-auditmation-auditmation-platform');
 
-// const pipelineId = 'd03c1de1-9961-476f-93d1-bac0f8444040';
+process
+  .on('unhandledRejection', (reason, p) => {
+    console.error(reason, 'Unhandled Rejection at Promise', p);
+  })
+  .on('uncaughtException', (err) => {
+    console.error(err, 'Uncaught Exception thrown');
+    process.exit(1);
+  });
+
 const evidenceDefinitionId = '209010da-70d1-5fa5-babf-91974fa13bd2';
 const productId = '6a70bddd-99ae-5275-95a5-4244a4228092';
 
@@ -228,9 +236,4 @@ async function run() {
   }
 }
 
-try {
-  run();
-} catch (err) {
-  console.log(err);
-  console.log(err.stack);
-}
+run();
