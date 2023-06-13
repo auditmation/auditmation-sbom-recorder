@@ -14,7 +14,7 @@ const evidenceDefinitionId = '209010da-70d1-5fa5-babf-91974fa13bd2';
 const productId = '6a70bddd-99ae-5275-95a5-4244a4228092';
 
 async function run() {
-  const pkgName = core.getInput('pkg-name');
+  const pkgName = core.getInput('package');
   const filePath = core.getInput('file-path');
   const apiKey = core.getInput('api-key');
   const orgId = core.getInput('org-id');
