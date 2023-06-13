@@ -1,7 +1,5 @@
 const core = require('@actions/core');
-const exec = require('@actions/exec');
-const { TimeZone, URL } = require('@auditmation/types-core-js');
-const axios = require('axios');
+
 const fs = require('fs');
 const md5File = require('md5-file');
 const path = require('path');
@@ -39,9 +37,12 @@ async function run() {
           fileName += data.toString();
         },
       },
+      cwd: process.cwd(),
     });
     const filePrefix = pkgName.replace('@', '').replace('/', '-');
-    await exec.exec('sh -c', [`tar zxfv ${fileName}`]);
+    await exec.exec('sh -c', [`tar zxfv ${fileName}`], {
+      cwd: process.cwd(),
+    });
     console.log(__dirname);
     console.log(process.cwd());
     const sbomFilePath = path.join(__dirname, '..', 'package', filePath);
