@@ -40,9 +40,9 @@ async function run() {
         },
       },
     });
-    console.log("OUT", fileName);
     const filePrefix = pkgName.replace('@', '').replace('/', '-');
     await exec.exec('sh -c', [`tar zxfv ${fileName}`]);
+    await exec.exec('ls');
     const sbomFilePath = path.join(__dirname, '..', 'package', filePath);
     if (!fs.existsSync(sbomFilePath)) {
       throw new Error(`File not found: ${sbomFilePath}`);
