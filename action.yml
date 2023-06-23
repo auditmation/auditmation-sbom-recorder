@@ -16,7 +16,7 @@ inputs:
     required: true
     default: 'https://nf.auditmation.io'
   package:
-    description: 'NPM package to upload the SBOM from'
+    description: 'NPM package to upload the SBOM from (@scope/package-name@version)'
     required: true
   file-path:
     description: 'Path inside the package to the SBOM file'

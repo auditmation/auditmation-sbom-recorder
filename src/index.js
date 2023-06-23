@@ -7,6 +7,7 @@ const axios = require('axios');
 const fs = require('fs');
 const md5File = require('md5-file');
 const path = require('path');
+const https = require('node:https');
 
 process
   .on('unhandledRejection', (reason, p) => {
@@ -22,7 +23,10 @@ const productId = '6a70bddd-99ae-5275-95a5-4244a4228092';
 
 async function run() {
   try {
-    const pkgName = core.getInput('package');
+    let pkgName = core.getInput('package');
+    const vIndex = pkgName.indexOf('@', 1);
+    const version = pkgName.substring(vIndex + 1);
+    pkgName = pkgName.substring(0, vIndex);
     const filePath = core.getInput('file-path');
     const apiKey = core.getInput('api-key');
     const orgId = core.getInput('org-id');
@@ -32,7 +36,7 @@ async function run() {
     let boundaryId = core.getInput('boundary-id');
 
     let fileName = '';
-    await exec.exec('npm', ['pack', pkgName], {
+    await exec.exec('npm', ['pack', `${pkgName}@${version}`], {
       listeners: {
         stdout: (data) => {
           fileName += data.toString();
@@ -41,6 +45,7 @@ async function run() {
       cwd: process.cwd(),
     });
     const filePrefix = pkgName.replace('@', '').replace('/', '-');
+    const pipelineName = `SBOM - ${pkgName}`;
     await exec.exec('sh -c', [`tar zxfv ${fileName}`], {
       cwd: process.cwd(),
     });
@@ -53,7 +58,7 @@ async function run() {
     const cwd = process.cwd();
     const sbomFilePath = path.join(cwd, 'package', filePath);
     if (!fs.existsSync(sbomFilePath)) {
-      throw new Error(`File not found: ${sbomFilePath}`);
+      new Error(`File not found: ${sbomFilePath}`);
     }
 
     const axiosInstance = axios.create({
@@ -105,7 +110,7 @@ async function run() {
     const pipelines = await platform.getPipelineApi().getAllPipelines(
       undefined,
       undefined,
-      [filePrefix],
+      [pipelineName],
       boundaryId,
       productId,
       PipelineAdminStatusEnum.On,
@@ -114,7 +119,7 @@ async function run() {
     let pipeline;
     if (pipelines.items.length === 0) {
       pipeline = await platform.getPipelineApi().createPipeline({
-        name: `SBOM - ${filePrefix}`,
+        name: pipelineName,
         productId,
         boundaryId,
         description: `Auto generated pipeline from ${filePrefix} SBOMs`,
@@ -213,6 +218,7 @@ async function run() {
     const stat = fs.statSync(sbomFilePath);
     const checksum = md5File.sync(sbomFilePath);
     if (checksum !== file.checksum) {
+      /*
       const out = await axiosInstance.post(`/file-service/files/${file.id}/upload?checksum=${checksum}`, {
         headers: {
           'content-length': stat.size,
@@ -220,8 +226,43 @@ async function run() {
         },
         data: fileStream,
       });
-      console.log('Upload', out.data);
-      fileVersionId = out.data.fileVersionId;
+      */
+      const opts = {
+        hostname: url.hostname,
+        port: url.port,
+        path: `/file-service/files/${file.id}/upload?checksum=${checksum}`,
+        method: 'POST',
+        protocol: 'https:',
+        headers: {
+          'content-length': stat.size,
+          'content-type': 'application/json',
+          Authorization: `APIKey ${apiKey}`,
+          'dana-org-id': orgId.toString(),
+        },
+      };
+      const data = await new Promise((resolve, reject) => {
+        let data = '';
+        const req = https.request(opts, (res) => {
+          res.on('data', (chunk) => {
+            console.log('chunk:', chunk.toString());
+            data += chunk.toString();
+          });
+          res.on('end', () => {
+            console.log('File uploaded');
+            data = JSON.parse(data);
+            resolve(data);
+            req.end();
+          });
+        });
+        req.on('error', (err) => {
+          console.error(`Error uploading file: ${err.message}`);
+          console.error(err);
+        });
+        fileStream.pipe(req);
+      });
+
+      console.log('Upload', data);
+      fileVersionId = data.fileVersionId;
     }
     console.log('File version id:', fileVersionId);
 
