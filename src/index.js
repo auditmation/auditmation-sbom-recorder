@@ -49,7 +49,14 @@ async function run() {
     await exec.exec('sh -c', [`tar zxfv ${fileName}`]);
     await exec.exec('ls', []);
     await exec.exec('ls', ['package']);
-    const out = await exec.exec('pwd', []);
+    let out = '';
+    const options = {};
+    options.listeners = {
+      stdout: (data) => {
+        out += data.toString();
+      },
+    };
+    await exec.exec('pwd', [], options);
     console.log(out);
     const cwd = process.cwd();
     const sbomFilePath = path.join(cwd, 'package', filePath);
