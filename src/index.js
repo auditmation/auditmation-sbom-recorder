@@ -55,9 +55,12 @@ async function run() {
     await exec.exec('ls', ['package'], {
       cwd: process.cwd(),
     });
+    await exec.exec('pwd', [], {
+      cwd: process.cwd(),
+    });
     const cwd = process.cwd();
     const sbomFilePath = path.join(cwd, 'package', filePath);
-    await exec.exec('ls', [sbomFilePath], {
+    await exec.exec('ls', [path.join(cwd, 'package')], {
       cwd: process.cwd(),
     });
     if (!fs.existsSync(sbomFilePath)) {
