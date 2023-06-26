@@ -57,8 +57,7 @@ async function run() {
       },
     };
     await exec.exec('pwd', [], options);
-    console.log(out);
-    const cwd = process.cwd();
+    const cwd = out.trim();
     const sbomFilePath = path.join(cwd, 'package', filePath);
     await exec.exec('ls', [path.join(cwd, 'package')], {
       cwd: process.cwd(),
