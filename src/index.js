@@ -46,18 +46,11 @@ async function run() {
     });
     const filePrefix = pkgName.replace('@', '').replace('/', '-');
     const pipelineName = `SBOM - ${pkgName}`;
-    await exec.exec('sh -c', [`tar zxfv ${fileName}`], {
-      cwd: process.cwd(),
-    });
-    await exec.exec('ls', [], {
-      cwd: process.cwd(),
-    });
-    await exec.exec('ls', ['package'], {
-      cwd: process.cwd(),
-    });
-    await exec.exec('pwd', [], {
-      cwd: process.cwd(),
-    });
+    await exec.exec('sh -c', [`tar zxfv ${fileName}`]);
+    await exec.exec('ls', []);
+    await exec.exec('ls', ['package']);
+    const out = await exec.exec('pwd', []);
+    console.log(out);
     const cwd = process.cwd();
     const sbomFilePath = path.join(cwd, 'package', filePath);
     await exec.exec('ls', [path.join(cwd, 'package')], {
