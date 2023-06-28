@@ -22,6 +22,9 @@ inputs:
     description: 'Path inside the package to the SBOM file'
     required: true
     default: bom.json
+  product-id:
+    description: ID of the product to place the pipeline in
+    default: '23cf2909-5c5e-5546-be5f-7f167d1f1c16'
 runs:
   using: 'node16'
   main: 'dist/index.js'

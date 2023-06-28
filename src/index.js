@@ -19,13 +19,13 @@ process
   });
 
 const evidenceDefinitionId = '209010da-70d1-5fa5-babf-91974fa13bd2';
-const productId = '6a70bddd-99ae-5275-95a5-4244a4228092';
 
 async function run() {
   try {
+    const productId = core.getInput('product-id');
     let pkgName = core.getInput('package');
     const vIndex = pkgName.indexOf('@', 1);
-    const version = pkgName.substring(vIndex + 1);
+    let version = pkgName.substring(vIndex + 1);
     pkgName = pkgName.substring(0, vIndex);
     const filePath = core.getInput('file-path');
     const apiKey = core.getInput('api-key');
@@ -36,7 +36,7 @@ async function run() {
     let boundaryId = core.getInput('boundary-id');
 
     let fileName = '';
-    await exec.exec('npm', ['pack', `${pkgName}@${version}`], {
+    await exec.exec('npm', ['--silent', 'pack', `${pkgName}@${version}`], {
       listeners: {
         stdout: (data) => {
           fileName += data.toString();
@@ -45,10 +45,8 @@ async function run() {
       cwd: process.cwd(),
     });
     const filePrefix = pkgName.replace('@', '').replace('/', '-');
-    const pipelineName = `SBOM - ${pkgName}`;
-    await exec.exec('sh -c', [`tar zxfv ${fileName}`]);
-    await exec.exec('ls', []);
-    await exec.exec('ls', ['package']);
+    const pipelineName = `Auditmation SBOM Recorder`;
+    await exec.exec('sh -c', [`tar zxf ${fileName}`]);
     let out = '';
     const options = {};
     options.listeners = {
@@ -59,9 +57,13 @@ async function run() {
     await exec.exec('pwd', [], options);
     const cwd = out.trim();
     const sbomFilePath = path.join(cwd, 'package', filePath);
-    await exec.exec('ls', [path.join(cwd, 'package')], {
-      cwd: process.cwd(),
-    });
+
+    if (version === 'latest') {
+      const pkgFilePath = path.join(cwd, 'package', 'package.json');
+      const pkgJson = JSON.parse(fs.readFileSync(pkgFilePath));
+      version = pkgJson.version;
+    }
+
     if (!fs.existsSync(sbomFilePath)) {
       new Error(`File not found: ${sbomFilePath}`);
     }
@@ -97,7 +99,7 @@ async function run() {
 
     // Find the product
     await platform.getBoundaryApi().createBoundaryProduct(boundaryId, {
-      name: 'npm',
+      name: 'Auditmation',
       description: '',
       productIds: [productId],
     });
@@ -130,7 +132,7 @@ async function run() {
         description: `Auto generated pipeline from ${filePrefix} SBOMs`,
         timezone: TimeZone.Utc,
         targets: {},
-        moduleName: 'npm',
+        moduleName: 'Auditmation',
         format: PipelineFormatEnum.File,
       });
     } else {
@@ -155,7 +157,7 @@ async function run() {
     const batch = await platform.getBatchApi().createBatch({
       className: 'EvidenceFile',
       jobId,
-      groupId: pipelineId,
+      groupId: pkgName,
     });
     const batchId = batch.id;
     console.log('Created batch:', batchId);
@@ -209,7 +211,7 @@ async function run() {
     }
 
     const file = await fileService.getFileApi().create({
-      name: 'bom.json',
+      name: `${pkgName}-${version}.json`,
       description: `SBOM for ${pkgName}`,
       folderId,
       retentionPolicy: {},
