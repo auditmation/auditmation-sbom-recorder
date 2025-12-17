@@ -265,12 +265,12 @@ async function ensureBoundaryProduct(
   });
 
   // Find the boundary product ID
-  const boundaryProducts = await platform
+  const boundaryProductsResponse = await platform
     .getBoundaryApi()
-    .listBoundaryProductsByBoundary(boundaryId) as BoundaryProduct[];
+    .listBoundaryProductsByBoundary(boundaryId);
 
-  const boundaryProduct = boundaryProducts.find(
-    (product) => product.productId.toString() === productId
+  const boundaryProduct = boundaryProductsResponse.items.find(
+    (product: BoundaryProduct) => product.productId.toString() === productId
   );
 
   if (!boundaryProduct) {
@@ -361,15 +361,15 @@ async function ensureFolderStructure(
   pipelineId: string
 ): Promise<string> {
   // Ensure /pipeline folder exists
-  let folders = await fileService.getResourceApi().searchResources(
+  let foldersResponse = await fileService.getResourceApi().searchResources(
     undefined,
     undefined,
     ['pipeline'],
     undefined,
     ['folder'],
-  ) as Folder[];
+  );
 
-  let pipelineFolderId = folders.find((f) => f.name === 'pipeline')?.id;
+  let pipelineFolderId = foldersResponse.items?.find((f: Folder) => f.name === 'pipeline')?.id;
 
   if (!pipelineFolderId) {
     const folder = await fileService.getFolderApi().create({
@@ -379,15 +379,15 @@ async function ensureFolderStructure(
   }
 
   // Ensure /pipeline/{pipelineId} folder exists
-  folders = await fileService.getResourceApi().searchResources(
+  foldersResponse = await fileService.getResourceApi().searchResources(
     undefined,
     undefined,
     [pipelineId.toString()],
     undefined,
     ['folder'],
-  ) as Folder[];
+  );
 
-  let folderId = folders.find((f) => f.name === pipelineId.toString())?.id;
+  let folderId = foldersResponse.items?.find((f: Folder) => f.name === pipelineId.toString())?.id;
 
   if (!folderId) {
     const folder = await fileService.getFolderApi().create({
