@@ -269,11 +269,19 @@ async function ensureBoundaryProduct(
     const boundaryUUID = await UUID.parse(boundaryId);
     const productUUID = await UUID.parse(productId);
 
-    // Create NewBoundaryProduct instance
-    const newBoundaryProduct = new NewBoundaryProduct('Auditmation', '', [productUUID]);
-    console.log('  createBoundaryProduct with UUIDs');
+    // Create payload - try plain object with UUID objects
+    const payload = {
+      name: 'Auditmation',
+      description: '',
+      productIds: [productUUID],
+    };
+    console.log('  createBoundaryProduct payload:', JSON.stringify({
+      name: payload.name,
+      description: payload.description,
+      productIds: payload.productIds.map(id => id.toString()),
+    }));
 
-    await platform.getBoundaryApi().createBoundaryProduct(boundaryUUID, newBoundaryProduct);
+    await platform.getBoundaryApi().createBoundaryProduct(boundaryUUID, payload as any);
     console.log('Boundary product created successfully');
   } catch (error) {
     const err = error as Error;
