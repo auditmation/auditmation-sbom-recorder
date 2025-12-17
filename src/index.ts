@@ -359,11 +359,21 @@ async function ensurePipeline(
     console.log('  Searching for pipeline with name:', PIPELINE_NAME);
     const { axios } = clients;
 
-    const response = await axios.get('platform/app/pipelines', {
-      params: {
-        keywords: PIPELINE_NAME,
-      },
-    });
+    let response;
+    try {
+      response = await axios.get('platform/app/pipelines', {
+        params: {
+          keywords: PIPELINE_NAME,
+        },
+      });
+    } catch (error: any) {
+      console.log('Pipeline list request failed:');
+      console.log('  Status:', error.response?.status);
+      console.log('  Response data:', JSON.stringify(error.response?.data));
+      console.log('  Request URL:', error.config?.url);
+      console.log('  Request params:', JSON.stringify(error.config?.params));
+      throw error;
+    }
 
     const pipelines = { items: response.data };
 
