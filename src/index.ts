@@ -6,6 +6,7 @@ import {
   PipelineAdminStatusEnum,
   PipelineFormatEnum,
   PipelineJobStatusEnum,
+  PipelineModeEnum,
 } from '@auditmation/module-auditmation-auditmation-platform';
 import { TimeZone, URL, UUID } from '@auditmation/types-core-js';
 import axios, { type AxiosInstance } from 'axios';
@@ -313,6 +314,7 @@ async function ensurePipeline(
       targets: {},
       moduleName: 'Auditmation',
       format: PipelineFormatEnum.File,
+      executionMode: PipelineModeEnum.Normal,
     });
   } else {
     [pipeline] = pipelines.items;
