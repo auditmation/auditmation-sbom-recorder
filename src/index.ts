@@ -229,6 +229,26 @@ async function setupApiClients(inputs: ActionInputs): Promise<ApiClients> {
     url: `${url.toString()}platform`,
   });
 
+  // Enable request inspection for debugging
+  platform.enableRequestInspection(true);
+  const inspector = platform.getRequestInspector();
+
+  inspector.onRequest((config: any) => {
+    console.log(`\n→ SDK REQUEST: ${config.method?.toUpperCase()} ${config.url}`);
+    console.log('  Headers:', JSON.stringify(config.headers, null, 2));
+    if (config.data) {
+      console.log('  Body:', typeof config.data === 'string' ? config.data : JSON.stringify(config.data, null, 2));
+    }
+  });
+
+  inspector.onResponse((response: any) => {
+    console.log(`\n← SDK RESPONSE: ${response.status} ${response.statusText}`);
+    console.log(`  Duration: ${response.duration}ms`);
+    if (response.data) {
+      console.log('  Response data:', typeof response.data === 'string' ? response.data : JSON.stringify(response.data, null, 2));
+    }
+  });
+
   return {
     axios: axiosInstance,
     fileService,
