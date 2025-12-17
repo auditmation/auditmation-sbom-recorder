@@ -2,12 +2,13 @@ import * as core from '@actions/core';
 import * as exec from '@actions/exec';
 import { newFileService } from '@auditmation/module-auditmation-auditmation-file-service';
 import {
-  newPlatform,
+  newPlatformApi,
   PipelineAdminStatusEnum,
   PipelineFormatEnum,
   PipelineJobStatusEnum,
-  PipelineModeEnum,
-} from '@auditmation/module-auditmation-auditmation-platform';
+  PipelineExecutionModeEnum,
+  PipelineConnectorTypeEnum,
+} from '@auditmation/platform-sdk';
 import { TimeZone, URL, UUID } from '@auditmation/types-core-js';
 import axios, { type AxiosInstance } from 'axios';
 import * as fs from 'fs';
@@ -220,11 +221,11 @@ async function setupApiClients(inputs: ActionInputs): Promise<ApiClients> {
     url: await URL.parse(`${url.toString()}file-service`),
   });
 
-  const platform = newPlatform();
+  const platform = newPlatformApi();
   await platform.connect({
     apiKey,
     orgId: await UUID.parse(orgId),
-    url: await URL.parse(`${url.toString()}platform`),
+    url: `${url.toString()}platform`,
   });
 
   return {
@@ -314,7 +315,8 @@ async function ensurePipeline(
       targets: {},
       moduleName: 'Auditmation',
       format: PipelineFormatEnum.File,
-      executionMode: PipelineModeEnum.Normal,
+      executionMode: PipelineExecutionModeEnum.Receiver,
+      connectorType: PipelineConnectorTypeEnum.ProductSpecific,
     });
   } else {
     [pipeline] = pipelines.items;
