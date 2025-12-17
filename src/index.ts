@@ -8,6 +8,7 @@ import {
   PipelineJobStatusEnum,
   PipelineExecutionModeEnum,
   PipelineConnectorTypeEnum,
+  NewBoundaryProduct,
 } from '@auditmation/platform-sdk';
 import { TimeZone, URL, UUID } from '@auditmation/types-core-js';
 import axios, { type AxiosInstance } from 'axios';
@@ -264,13 +265,15 @@ async function ensureBoundaryProduct(
   console.log('  boundaryId:', boundaryId);
   console.log('  productId:', productId);
   try {
-    const payload = {
-      name: 'Auditmation',
-      description: '',
-      productIds: [productId],
-    };
-    console.log('  createBoundaryProduct payload:', JSON.stringify(payload));
-    await platform.getBoundaryApi().createBoundaryProduct(boundaryId, payload);
+    // Convert strings to UUID objects
+    const boundaryUUID = await UUID.parse(boundaryId);
+    const productUUID = await UUID.parse(productId);
+
+    // Create NewBoundaryProduct instance
+    const newBoundaryProduct = new NewBoundaryProduct('Auditmation', '', [productUUID]);
+    console.log('  createBoundaryProduct with UUIDs');
+
+    await platform.getBoundaryApi().createBoundaryProduct(boundaryUUID, newBoundaryProduct);
     console.log('Boundary product created successfully');
   } catch (error) {
     const err = error as Error;
@@ -288,9 +291,10 @@ async function ensureBoundaryProduct(
   // Find the boundary product ID
   console.log('Listing boundary products...');
   try {
+    const boundaryUUID = await UUID.parse(boundaryId);
     const boundaryProductsResponse = await platform
       .getBoundaryApi()
-      .listBoundaryProductsByBoundary(boundaryId);
+      .listBoundaryProductsByBoundary(boundaryUUID);
 
     const boundaryProduct = boundaryProductsResponse.items.find(
       (product: BoundaryProduct) => product.productId.toString() === productId
