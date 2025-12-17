@@ -284,6 +284,7 @@ async function ensureBoundaryProduct(
 async function ensurePipeline(
   clients: ApiClients,
   boundaryId: string,
+  boundaryProductId: string,
   productId: string,
   packageInfo: ExtractedPackageInfo
 ): Promise<Pipeline> {
@@ -306,6 +307,7 @@ async function ensurePipeline(
       name: PIPELINE_NAME,
       productId,
       boundaryId,
+      boundaryProductId,
       description: `Auto generated pipeline from ${filePrefix} SBOMs`,
       timezone: TimeZone.Utc,
       targets: {},
@@ -562,12 +564,13 @@ async function run(): Promise<void> {
     const boundaryId = await ensureBoundary(clients, inputs);
 
     // Create boundary product
-    await ensureBoundaryProduct(clients, boundaryId, inputs.productId);
+    const boundaryProductId = await ensureBoundaryProduct(clients, boundaryId, inputs.productId);
 
     // Get or create pipeline
     const pipeline = await ensurePipeline(
       clients,
       boundaryId,
+      boundaryProductId,
       inputs.productId,
       packageInfo
     );
