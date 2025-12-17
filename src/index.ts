@@ -265,21 +265,16 @@ async function ensureBoundaryProduct(
   console.log('  boundaryId:', boundaryId);
   console.log('  productId:', productId);
   try {
-    // Convert strings to UUID objects
+    // Convert boundaryId to UUID object, but keep productIds as strings
     const boundaryUUID = await UUID.parse(boundaryId);
-    const productUUID = await UUID.parse(productId);
 
-    // Create payload - try plain object with UUID objects
+    // Create payload - plain object with string UUIDs (per OpenAPI spec)
     const payload = {
       name: 'Auditmation',
       description: '',
-      productIds: [productUUID],
+      productIds: [productId], // Keep as string, not UUID object
     };
-    console.log('  createBoundaryProduct payload:', JSON.stringify({
-      name: payload.name,
-      description: payload.description,
-      productIds: payload.productIds.map(id => id.toString()),
-    }));
+    console.log('  createBoundaryProduct payload:', JSON.stringify(payload));
 
     await platform.getBoundaryApi().createBoundaryProduct(boundaryUUID, payload as any);
     console.log('Boundary product created successfully');
