@@ -261,33 +261,53 @@ async function ensureBoundaryProduct(
 
   // Create boundary product (may already exist)
   console.log('Creating boundary product...');
+  console.log('  boundaryId:', boundaryId);
+  console.log('  productId:', productId);
   try {
-    await platform.getBoundaryApi().createBoundaryProduct(boundaryId, {
+    const payload = {
       name: 'Auditmation',
       description: '',
       productIds: [productId],
-    });
+    };
+    console.log('  createBoundaryProduct payload:', JSON.stringify(payload));
+    await platform.getBoundaryApi().createBoundaryProduct(boundaryId, payload);
     console.log('Boundary product created successfully');
   } catch (error) {
-    console.log('Boundary product creation failed (may already exist):', error);
+    const err = error as Error;
+    console.log('Boundary product creation failed (may already exist)');
+    console.log('  Error message:', err.message);
+    console.log('  Error stack:', err.stack);
+    // Re-throw with context if it's not a "already exists" type error
+    if (!err.message.includes('already exists') && !err.message.includes('duplicate')) {
+      const contextError = new Error(`Failed to create boundary product in ensureBoundaryProduct(): ${err.message}`);
+      contextError.stack = `${contextError.stack}\nCaused by: ${err.stack}`;
+      throw contextError;
+    }
   }
 
   // Find the boundary product ID
   console.log('Listing boundary products...');
-  const boundaryProductsResponse = await platform
-    .getBoundaryApi()
-    .listBoundaryProductsByBoundary(boundaryId);
+  try {
+    const boundaryProductsResponse = await platform
+      .getBoundaryApi()
+      .listBoundaryProductsByBoundary(boundaryId);
 
-  const boundaryProduct = boundaryProductsResponse.items.find(
-    (product: BoundaryProduct) => product.productId.toString() === productId
-  );
+    const boundaryProduct = boundaryProductsResponse.items.find(
+      (product: BoundaryProduct) => product.productId.toString() === productId
+    );
 
-  if (!boundaryProduct) {
-    throw new Error(`Boundary product not found for product ID: ${productId}`);
+    if (!boundaryProduct) {
+      throw new Error(`Boundary product not found for product ID: ${productId}`);
+    }
+
+    console.log('Boundary product:', boundaryProduct.id);
+    return boundaryProduct.id;
+  } catch (error) {
+    const err = error as Error;
+    const contextError = new Error(`Failed in listBoundaryProductsByBoundary(): ${err.message}`);
+    contextError.stack = `${contextError.stack}\nCaused by: ${err.stack}`;
+    throw contextError;
   }
-
-  console.log('Boundary product:', boundaryProduct.id);
-  return boundaryProduct.id;
 }
 
 async function ensurePipeline(
@@ -301,40 +321,54 @@ async function ensurePipeline(
   const filePrefix = packageInfo.pkgName.replace('@', '').replace('/', '-');
 
   // Check if pipeline already exists
-  const pipelines = await platform.getPipelineApi().getAllPipelines(
-    undefined,
-    undefined,
-    [PIPELINE_NAME],
-    boundaryId,
-    productId,
-    PipelineAdminStatusEnum.On,
-  );
-
-  let pipeline: Pipeline;
-  if (pipelines.items.length === 0) {
-    pipeline = await platform.getPipelineApi().createPipeline({
-      name: PIPELINE_NAME,
-      productId,
+  console.log('Checking for existing pipeline...');
+  try {
+    const pipelines = await platform.getPipelineApi().list(
+      undefined,
+      undefined,
+      PIPELINE_NAME,
+      undefined,
       boundaryId,
-      boundaryProductId,
-      description: `Auto generated pipeline from ${filePrefix} SBOMs`,
-      timezone: TimeZone.Utc,
-      targets: {},
-      moduleName: 'Auditmation',
-      format: PipelineFormatEnum.File,
-      executionMode: PipelineExecutionModeEnum.Receiver,
-      connectorType: PipelineConnectorTypeEnum.ProductSpecific,
-    });
-  } else {
-    [pipeline] = pipelines.items;
+      productId,
+      PipelineAdminStatusEnum.On,
+    );
+
+    let pipeline: Pipeline;
+    if (pipelines.items.length === 0) {
+      console.log('Creating new pipeline...');
+      const pipelinePayload = {
+        name: PIPELINE_NAME,
+        productId,
+        boundaryId,
+        boundaryProductId,
+        description: `Auto generated pipeline from ${filePrefix} SBOMs`,
+        timezone: TimeZone.Utc,
+        targets: {},
+        moduleName: 'Auditmation',
+        format: PipelineFormatEnum.File,
+        executionMode: PipelineExecutionModeEnum.Receiver,
+        connectorType: PipelineConnectorTypeEnum.ProductSpecific,
+      };
+      console.log('  Pipeline payload:', JSON.stringify(pipelinePayload, null, 2));
+      pipeline = await platform.getPipelineApi().create(pipelinePayload);
+      console.log('Pipeline created successfully');
+    } else {
+      console.log('Using existing pipeline');
+      [pipeline] = pipelines.items;
+    }
+
+    // Ensure pipeline is enabled
+    pipeline.adminStatus = PipelineAdminStatusEnum.On;
+    pipeline = await platform.getPipelineApi().update(pipeline.id, pipeline);
+
+    console.log('Using pipeline:', pipeline.id);
+    return pipeline;
+  } catch (error) {
+    const err = error as Error;
+    const contextError = new Error(`Failed in ensurePipeline(): ${err.message}`);
+    contextError.stack = `${contextError.stack}\nCaused by: ${err.stack}`;
+    throw contextError;
   }
-
-  // Ensure pipeline is enabled
-  pipeline.adminStatus = PipelineAdminStatusEnum.On;
-  pipeline = await platform.getPipelineApi().updatePipeline(pipeline.id, pipeline);
-
-  console.log('Using pipeline:', pipeline.id);
-  return pipeline;
 }
 
 async function createPipelineJob(
