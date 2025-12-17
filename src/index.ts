@@ -260,13 +260,20 @@ async function ensureBoundaryProduct(
   const { platform } = clients;
 
   // Create boundary product (may already exist)
-  await platform.getBoundaryApi().createBoundaryProduct(boundaryId, {
-    name: 'Auditmation',
-    description: '',
-    productIds: [productId],
-  });
+  console.log('Creating boundary product...');
+  try {
+    await platform.getBoundaryApi().createBoundaryProduct(boundaryId, {
+      name: 'Auditmation',
+      description: '',
+      productIds: [productId],
+    });
+    console.log('Boundary product created successfully');
+  } catch (error) {
+    console.log('Boundary product creation failed (may already exist):', error);
+  }
 
   // Find the boundary product ID
+  console.log('Listing boundary products...');
   const boundaryProductsResponse = await platform
     .getBoundaryApi()
     .listBoundaryProductsByBoundary(boundaryId);
