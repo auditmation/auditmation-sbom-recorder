@@ -278,35 +278,40 @@ async function ensureBoundaryProduct(
   boundaryId: string,
   productId: string
 ): Promise<string> {
-  const { platform } = clients;
+  const { axios, platform } = clients;
 
   // Create boundary product (may already exist)
   console.log('Creating boundary product...');
   console.log('  boundaryId:', boundaryId);
   console.log('  productId:', productId);
   try {
-    // Convert boundaryId to UUID object, but keep productIds as strings
-    const boundaryUUID = await UUID.parse(boundaryId);
-
-    // Create payload - plain object with string UUIDs (per OpenAPI spec)
+    // SDK has a bug wrapping the payload, so use axios directly
     const payload = {
       name: 'Auditmation',
       description: '',
-      productIds: [productId], // Keep as string, not UUID object
+      productIds: [productId],
     };
     console.log('  createBoundaryProduct payload:', JSON.stringify(payload));
+    console.log('  Using direct axios POST to platform/boundaries/' + boundaryId + '/products');
 
-    await platform.getBoundaryApi().createBoundaryProduct(boundaryUUID, payload as any);
+    await axios.post(`platform/boundaries/${boundaryId}/products`, payload, {
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
     console.log('Boundary product created successfully');
-  } catch (error) {
-    const err = error as Error;
+  } catch (error: any) {
     console.log('Boundary product creation failed (may already exist)');
-    console.log('  Error message:', err.message);
-    console.log('  Error stack:', err.stack);
+    console.log('  Error message:', error.message);
+    if (error.response) {
+      console.log('  Response status:', error.response.status);
+      console.log('  Response data:', JSON.stringify(error.response.data));
+    }
     // Re-throw with context if it's not a "already exists" type error
-    if (!err.message.includes('already exists') && !err.message.includes('duplicate')) {
-      const contextError = new Error(`Failed to create boundary product in ensureBoundaryProduct(): ${err.message}`);
-      contextError.stack = `${contextError.stack}\nCaused by: ${err.stack}`;
+    const errorMessage = error.response?.data?.message || error.message || '';
+    if (!errorMessage.includes('already exists') && !errorMessage.includes('duplicate')) {
+      const contextError = new Error(`Failed to create boundary product in ensureBoundaryProduct(): ${error.message}`);
+      contextError.stack = `${contextError.stack}\nCaused by: ${error.stack}`;
       throw contextError;
     }
   }
