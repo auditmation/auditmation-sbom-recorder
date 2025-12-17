@@ -355,14 +355,18 @@ async function ensurePipeline(
   // Check if pipeline already exists
   console.log('Checking for existing pipeline...');
   try {
+    // Convert IDs to UUID objects for the SDK
+    const boundaryUUID = await UUID.parse(boundaryId);
+    const productUUID = await UUID.parse(productId);
+
     const pipelines = await platform.getPipelineApi().list(
-      undefined,
-      undefined,
-      PIPELINE_NAME,
-      undefined,
-      boundaryId,
-      productId,
-      PipelineAdminStatusEnum.On,
+      undefined, // pageNumber
+      undefined, // pageSize
+      PIPELINE_NAME, // keywords
+      undefined, // boundaryProductId
+      boundaryUUID, // boundaryId - UUID object
+      productUUID, // productId - UUID object
+      PipelineAdminStatusEnum.On, // adminStatus
     );
 
     let pipeline: Pipeline;
