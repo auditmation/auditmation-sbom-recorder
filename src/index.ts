@@ -355,17 +355,17 @@ async function ensurePipeline(
   // Check if pipeline already exists
   console.log('Checking for existing pipeline...');
   try {
-    // Try listing pipelines with just keywords filter (avoid SDK UUID serialization issues)
+    // SDK has serialization issues, use axios directly
     console.log('  Searching for pipeline with name:', PIPELINE_NAME);
-    const pipelines = await platform.getPipelineApi().list(
-      undefined, // pageNumber
-      undefined, // pageSize
-      PIPELINE_NAME, // keywords
-      undefined, // boundaryProductId
-      undefined, // boundaryId - skip for now
-      undefined, // productId - skip for now
-      undefined, // adminStatus - skip for now
-    );
+    const { axios } = clients;
+
+    const response = await axios.get('platform/app/pipelines', {
+      params: {
+        keywords: PIPELINE_NAME,
+      },
+    });
+
+    const pipelines = { items: response.data };
 
     let pipeline: Pipeline;
     if (pipelines.items.length === 0) {
