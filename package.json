@@ -3,7 +3,6 @@
   "version": "0.0.1",
   "description": "GitHub action for uploading sbom files to Auditmation",
   "main": "dist/index.js",
-  "type": "module",
   "scripts": {
     "build": "esbuild src/index.ts --bundle --minify --sourcemap --platform=node --target=es2020 --outfile=dist/index.js",
     "build:watch": "esbuild src/index.ts --bundle --sourcemap --platform=node --target=es2020 --outfile=dist/index.js --watch",
