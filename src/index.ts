@@ -9,8 +9,9 @@ import {
   PipelineExecutionModeEnum,
   PipelineConnectorTypeEnum,
   NewBoundaryProduct,
-} from '@auditmation/platform-sdk';
-import { TimeZone, URL, UUID } from '@auditmation/types-core-js';
+} from '@zerobias-com/platform-sdk';
+import { TimeZone, URL, UUID } from '@zerobias-org/types-core-js';
+import { UUID as OldUUID, URL as OldURL } from '@auditmation/types-core-js';
 import axios, { type AxiosInstance } from 'axios';
 import * as fs from 'fs';
 import md5File from 'md5-file';
@@ -218,8 +219,8 @@ async function setupApiClients(inputs: ActionInputs): Promise<ApiClients> {
   const fileService = newFileService();
   await fileService.connect({
     apiKey,
-    orgId: await UUID.parse(orgId),
-    url: await URL.parse(`${url.toString()}file-service`),
+    orgId: await OldUUID.parse(orgId),
+    url: await OldURL.parse(`${url.toString()}file-service`),
   });
 
   const platform = newPlatformApi();
@@ -278,27 +279,23 @@ async function ensureBoundaryProduct(
   boundaryId: string,
   productId: string
 ): Promise<string> {
-  const { axios, platform } = clients;
+  const { platform } = clients;
 
   // Create boundary product (may already exist)
   console.log('Creating boundary product...');
   console.log('  boundaryId:', boundaryId);
   console.log('  productId:', productId);
   try {
-    // SDK has a bug wrapping the payload, so use axios directly
-    const payload = {
+    const productUUID = await UUID.parse(productId);
+    const payload: NewBoundaryProduct = {
       name: 'Auditmation',
       description: '',
-      productIds: [productId],
+      productIds: [productUUID],
     };
     console.log('  createBoundaryProduct payload:', JSON.stringify(payload));
-    console.log('  Using direct axios POST to platform/boundaries/' + boundaryId + '/products');
 
-    await axios.post(`platform/boundaries/${boundaryId}/products`, payload, {
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
+    const boundaryUUID = await UUID.parse(boundaryId);
+    await platform.getBoundaryApi().createBoundaryProduct(boundaryUUID, payload);
     console.log('Boundary product created successfully');
   } catch (error: any) {
     console.log('Boundary product creation failed (may already exist)');
@@ -355,27 +352,10 @@ async function ensurePipeline(
   // Check if pipeline already exists
   console.log('Checking for existing pipeline...');
   try {
-    // SDK has serialization issues, use axios directly
     console.log('  Searching for pipeline with name:', PIPELINE_NAME);
-    const { axios } = clients;
 
-    let response;
-    try {
-      response = await axios.get('platform/app/pipelines', {
-        params: {
-          keywords: PIPELINE_NAME,
-        },
-      });
-    } catch (error: any) {
-      console.log('Pipeline list request failed:');
-      console.log('  Status:', error.response?.status);
-      console.log('  Response data:', JSON.stringify(error.response?.data));
-      console.log('  Request URL:', error.config?.url);
-      console.log('  Request params:', JSON.stringify(error.config?.params));
-      throw error;
-    }
-
-    const pipelines = { items: response.data };
+    // List all pipelines using the SDK
+    const pipelines = await platform.getPipelineApi().list();
 
     let pipeline: Pipeline;
     if (pipelines.items.length === 0) {
@@ -401,9 +381,14 @@ async function ensurePipeline(
       [pipeline] = pipelines.items;
     }
 
-    // Ensure pipeline is enabled
-    pipeline.adminStatus = PipelineAdminStatusEnum.On;
-    pipeline = await platform.getPipelineApi().update(pipeline.id, pipeline);
+    // Ensure pipeline is enabled (only update if in draft status)
+    if (pipeline.adminStatus === PipelineAdminStatusEnum.Draft) {
+      console.log('Updating pipeline status from draft to created...');
+      pipeline.adminStatus = PipelineAdminStatusEnum.Created;
+      pipeline = await platform.getPipelineApi().update(pipeline.id, pipeline);
+    } else {
+      console.log(`Pipeline already in ${pipeline.adminStatus} status, skipping status update`);
+    }
 
     console.log('Using pipeline:', pipeline.id);
     return pipeline;
@@ -568,7 +553,8 @@ async function uploadSbomFile(
   }) as File;
 
   console.log('File:', file.id);
-  let fileVersionId = file.fileVersionId.toString();
+  console.log('File object:', JSON.stringify(file, null, 2));
+  let fileVersionId = file.fileVersionId?.toString() || '';
 
   // Upload file contents if checksum differs
   if (checksum !== file.checksum) {
@@ -601,7 +587,7 @@ async function addBatchItem(
 ): Promise<void> {
   const { platform } = clients;
 
-  const batchItem = await platform.getBatchApi().addBatchItem(batchId, {
+  const batchImportItem = {
     payload: {
       id: file.id,
       name: file.name,
@@ -612,9 +598,12 @@ async function addBatchItem(
       pipelineId,
     },
     rawData: {},
-  });
+  };
 
-  console.log('Batch item:', batchItem.id);
+  console.log('Adding batch item with payload:', JSON.stringify(batchImportItem, null, 2));
+  const response = await platform.getBatchApi().addBatchItem(batchId, batchImportItem);
+
+  console.log('Batch item:', response.id);
 }
 
 async function completePipelineJob(
