@@ -3,9 +3,14 @@ import { expect } from 'chai';
 import path from 'node:path';
 import { config } from 'dotenv';
 import { existsSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+
+// Get __dirname equivalent in ESM
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Load .env file if it exists
-const envPath = path.join(import.meta.dirname, '..', '.env');
+const envPath = path.join(__dirname, '..', '.env');
 if (existsSync(envPath)) {
   config({ path: envPath });
 }
@@ -37,8 +42,8 @@ describe('Auditmation SBOM Recorder Test', function () {
       ...(process.env as { [key: string]: string }),
     };
 
-    // Note: We're executing the compiled dist/index.js, not the TS source
-    const indexPath = path.join(import.meta.dirname, '..', 'dist', 'index.js');
+    // Note: We're executing the compiled dist/index.cjs, not the TS source
+    const indexPath = path.join(__dirname, '..', 'dist', 'index.cjs');
     const exitCode = await exec.exec('node', [indexPath], { env });
 
     console.log('Exit code:', exitCode);
