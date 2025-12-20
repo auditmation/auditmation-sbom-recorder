@@ -1,5 +1,6 @@
 import * as core from '@actions/core';
 import * as exec from '@actions/exec';
+import { getLogger } from '@auditmation/util-logger';
 import { newFileService } from '@auditmation/module-auditmation-auditmation-file-service';
 import {
   newPlatformApi,
@@ -13,10 +14,12 @@ import {
 import { TimeZone, URL, UUID } from '@zerobias-org/types-core-js';
 import { UUID as OldUUID, URL as OldURL } from '@auditmation/types-core-js';
 import axios, { type AxiosInstance } from 'axios';
-import * as fs from 'fs';
+import * as fs from 'node:fs';
 import md5File from 'md5-file';
-import * as path from 'path';
+import path from 'node:path';
 import * as https from 'node:https';
+
+const logger = getLogger('console', {}, process.env.LOG_LEVEL || 'debug');
 
 // Type Interfaces
 interface ActionInputs {
@@ -96,12 +99,12 @@ const PIPELINE_NAME = 'Auditmation SBOM Recorder' as const;
 
 // Global error handlers
 process.on('unhandledRejection', (reason: unknown, promise: Promise<unknown>) => {
-  console.error('Unhandled Rejection at Promise:', promise);
-  console.error('Reason:', reason);
+  logger.error('Unhandled Rejection at Promise:', promise);
+  logger.error('Reason:', reason);
 });
 
 process.on('uncaughtException', (err: Error) => {
-  console.error('Uncaught Exception thrown:', err);
+  logger.error('Uncaught Exception thrown:', err);
   process.exit(1);
 });
 
@@ -115,8 +118,8 @@ async function parseActionInputs(): Promise<ActionInputs> {
     throw new Error('Invalid package format. Expected @scope/package@version');
   }
 
-  let version = packageInput.substring(vIndex + 1);
-  const packageName = packageInput.substring(0, vIndex);
+  let version = packageInput.slice(vIndex + 1);
+  const packageName = packageInput.slice(0, vIndex);
   const filePath = core.getInput('file-path');
   const apiKey = core.getInput('api-key');
   const orgId = core.getInput('org-id');
@@ -182,8 +185,8 @@ async function downloadAndExtractPackage(
   let version = inputVersion;
   if (version === 'latest') {
     const pkgJsonPath = path.join(cwd, 'package', 'package.json');
-    const pkgJsonContent = fs.readFileSync(pkgJsonPath, 'utf-8');
-    const pkgJson = JSON.parse(pkgJsonContent) as PackageJson;
+    const pkgJsonBuffer = fs.readFileSync(pkgJsonPath);
+    const pkgJson = JSON.parse(pkgJsonBuffer.toString('utf8')) as PackageJson;
     version = pkgJson.version;
   }
 
@@ -235,18 +238,18 @@ async function setupApiClients(inputs: ActionInputs): Promise<ApiClients> {
   const inspector = platform.getRequestInspector();
 
   inspector.onRequest((config: any) => {
-    console.log(`\n→ SDK REQUEST: ${config.method?.toUpperCase()} ${config.url}`);
-    console.log('  Headers:', JSON.stringify(config.headers, null, 2));
+    logger.debug(`\n→ SDK REQUEST: ${config.method?.toUpperCase()} ${config.url}`);
+    logger.debug('  Headers:', JSON.stringify(config.headers, null, 2));
     if (config.data) {
-      console.log('  Body:', typeof config.data === 'string' ? config.data : JSON.stringify(config.data, null, 2));
+      logger.debug('  Body:', typeof config.data === 'string' ? config.data : JSON.stringify(config.data, null, 2));
     }
   });
 
   inspector.onResponse((response: any) => {
-    console.log(`\n← SDK RESPONSE: ${response.status} ${response.statusText}`);
-    console.log(`  Duration: ${response.duration}ms`);
+    logger.debug(`\n← SDK RESPONSE: ${response.status} ${response.statusText}`);
+    logger.debug(`  Duration: ${response.duration}ms`);
     if (response.data) {
-      console.log('  Response data:', typeof response.data === 'string' ? response.data : JSON.stringify(response.data, null, 2));
+      logger.debug('  Response data:', typeof response.data === 'string' ? response.data : JSON.stringify(response.data, null, 2));
     }
   });
 
@@ -269,7 +272,7 @@ async function ensureBoundary(
     const boundaries = await platform.getBoundaryApi().listBoundaries();
     boundaryId = boundaries.items[0].id;
   }
-  console.log('Using boundary:', boundaryId);
+  logger.info('Using boundary:', boundaryId);
 
   return boundaryId;
 }
@@ -282,9 +285,9 @@ async function ensureBoundaryProduct(
   const { platform } = clients;
 
   // Create boundary product (may already exist)
-  console.log('Creating boundary product...');
-  console.log('  boundaryId:', boundaryId);
-  console.log('  productId:', productId);
+  logger.info('Creating boundary product...');
+  logger.info('  boundaryId:', boundaryId);
+  logger.info('  productId:', productId);
   try {
     const productUUID = await UUID.parse(productId);
     const payload: NewBoundaryProduct = {
@@ -292,17 +295,17 @@ async function ensureBoundaryProduct(
       description: '',
       productIds: [productUUID],
     };
-    console.log('  createBoundaryProduct payload:', JSON.stringify(payload));
+    logger.info('  createBoundaryProduct payload:', JSON.stringify(payload));
 
     const boundaryUUID = await UUID.parse(boundaryId);
     await platform.getBoundaryApi().createBoundaryProduct(boundaryUUID, payload);
-    console.log('Boundary product created successfully');
+    logger.info('Boundary product created successfully');
   } catch (error: any) {
-    console.log('Boundary product creation failed (may already exist)');
-    console.log('  Error message:', error.message);
+    logger.info('Boundary product creation failed (may already exist)');
+    logger.info('  Error message:', error.message);
     if (error.response) {
-      console.log('  Response status:', error.response.status);
-      console.log('  Response data:', JSON.stringify(error.response.data));
+      logger.info('  Response status:', error.response.status);
+      logger.info('  Response data:', JSON.stringify(error.response.data));
     }
     // Re-throw with context if it's not a "already exists" type error
     const errorMessage = error.response?.data?.message || error.message || '';
@@ -314,7 +317,7 @@ async function ensureBoundaryProduct(
   }
 
   // Find the boundary product ID
-  console.log('Listing boundary products...');
+  logger.info('Listing boundary products...');
   try {
     const boundaryUUID = await UUID.parse(boundaryId);
     const boundaryProductsResponse = await platform
@@ -329,7 +332,7 @@ async function ensureBoundaryProduct(
       throw new Error(`Boundary product not found for product ID: ${productId}`);
     }
 
-    console.log('Boundary product:', boundaryProduct.id);
+    logger.info('Boundary product:', boundaryProduct.id);
     return boundaryProduct.id;
   } catch (error) {
     const err = error as Error;
@@ -350,16 +353,16 @@ async function ensurePipeline(
   const filePrefix = packageInfo.pkgName.replace('@', '').replace('/', '-');
 
   // Check if pipeline already exists
-  console.log('Checking for existing pipeline...');
+  logger.info('Checking for existing pipeline...');
   try {
-    console.log('  Searching for pipeline with name:', PIPELINE_NAME);
+    logger.info('  Searching for pipeline with name:', PIPELINE_NAME);
 
     // List all pipelines using the SDK
     const pipelines = await platform.getPipelineApi().list();
 
     let pipeline: Pipeline;
     if (pipelines.items.length === 0) {
-      console.log('Creating new pipeline...');
+      logger.info('Creating new pipeline...');
       const pipelinePayload = {
         name: PIPELINE_NAME,
         productId,
@@ -373,24 +376,24 @@ async function ensurePipeline(
         executionMode: PipelineExecutionModeEnum.Receiver,
         connectorType: PipelineConnectorTypeEnum.ProductSpecific,
       };
-      console.log('  Pipeline payload:', JSON.stringify(pipelinePayload, null, 2));
+      logger.info('  Pipeline payload:', JSON.stringify(pipelinePayload, null, 2));
       pipeline = await platform.getPipelineApi().create(pipelinePayload);
-      console.log('Pipeline created successfully');
+      logger.info('Pipeline created successfully');
     } else {
-      console.log('Using existing pipeline');
+      logger.info('Using existing pipeline');
       [pipeline] = pipelines.items;
     }
 
     // Ensure pipeline is enabled (only update if in draft status)
     if (pipeline.adminStatus === PipelineAdminStatusEnum.Draft) {
-      console.log('Updating pipeline status from draft to created...');
+      logger.info('Updating pipeline status from draft to created...');
       pipeline.adminStatus = PipelineAdminStatusEnum.Created;
       pipeline = await platform.getPipelineApi().update(pipeline.id, pipeline);
     } else {
-      console.log(`Pipeline already in ${pipeline.adminStatus} status, skipping status update`);
+      logger.info(`Pipeline already in ${pipeline.adminStatus} status, skipping status update`);
     }
 
-    console.log('Using pipeline:', pipeline.id);
+    logger.info('Using pipeline:', pipeline.id);
     return pipeline;
   } catch (error) {
     const err = error as Error;
@@ -411,7 +414,7 @@ async function createPipelineJob(
     previewMode: false,
   });
 
-  console.log('Created job:', job.id);
+  logger.info('Created job:', job.id);
   return job;
 }
 
@@ -428,7 +431,7 @@ async function createBatch(
     groupId,
   });
 
-  console.log('Created batch:', batch.id);
+  logger.info('Created batch:', batch.id);
   return batch;
 }
 
@@ -507,23 +510,23 @@ async function uploadFileContents(
     const req = https.request(opts, (res) => {
       res.on('data', (chunk: Buffer) => {
         const chunkStr = chunk.toString();
-        console.log('Upload chunk received:', chunkStr);
+        logger.info('Upload chunk received:', chunkStr);
         responseData += chunkStr;
       });
 
       res.on('end', () => {
-        console.log('File upload completed');
+        logger.info('File upload completed');
         try {
           const data = JSON.parse(responseData) as FileUploadResponse;
           resolve(data.fileVersionId);
-        } catch (error) {
+        } catch {
           reject(new Error(`Failed to parse upload response: ${responseData}`));
         }
       });
     });
 
     req.on('error', (err: Error) => {
-      console.error(`Error uploading file: ${err.message}`);
+      logger.error(`Error uploading file: ${err.message}`);
       reject(err);
     });
 
@@ -552,12 +555,14 @@ async function uploadSbomFile(
     syncPolicy: {},
   }) as File;
 
-  console.log('File:', file.id);
-  console.log('File object:', JSON.stringify(file, null, 2));
+  logger.info('File:', file.id);
+  logger.info('File object:', JSON.stringify(file, null, 2));
   let fileVersionId = file.fileVersionId?.toString() || '';
 
   // Upload file contents if checksum differs
-  if (checksum !== file.checksum) {
+  if (checksum === file.checksum) {
+    logger.info('File checksum matches, skipping upload');
+  } else {
     fileVersionId = await uploadFileContents(
       inputs.url,
       inputs.apiKey,
@@ -567,9 +572,7 @@ async function uploadSbomFile(
       fileSize,
       checksum
     );
-    console.log('File uploaded with new version:', fileVersionId);
-  } else {
-    console.log('File checksum matches, skipping upload');
+    logger.info('File uploaded with new version:', fileVersionId);
   }
 
   return {
@@ -600,10 +603,10 @@ async function addBatchItem(
     rawData: {},
   };
 
-  console.log('Adding batch item with payload:', JSON.stringify(batchImportItem, null, 2));
+  logger.info('Adding batch item with payload:', JSON.stringify(batchImportItem, null, 2));
   const response = await platform.getBatchApi().addBatchItem(batchId, batchImportItem);
 
-  console.log('Batch item:', response.id);
+  logger.info('Batch item:', response.id);
 }
 
 async function completePipelineJob(
@@ -670,11 +673,11 @@ async function run(): Promise<void> {
     await completePipelineJob(clients, job.id);
     await closeBatch(clients, batch.id);
 
-    console.log('SBOM upload completed successfully');
+    logger.info('SBOM upload completed successfully');
   } catch (error) {
     const err = error as Error;
-    console.error('Error:', err.message);
-    console.error('Stack:', err.stack);
+    logger.error('Error:', err.message);
+    logger.error('Stack:', err.stack);
     core.setFailed(err.message);
     process.exit(1);
   }
@@ -682,6 +685,6 @@ async function run(): Promise<void> {
 
 // Entry point
 run().catch((error: Error) => {
-  console.error('Unhandled error in run():', error);
+  logger.error('Unhandled error in run():', error);
   process.exit(1);
 });

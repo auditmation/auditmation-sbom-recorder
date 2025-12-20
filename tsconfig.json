@@ -1,11 +1,11 @@
 {
   "compilerOptions": {
-    "module": "commonjs",
+    "module": "ES2022",
     "noImplicitAny": false,
     "composite": true,
     "target": "ES2023",
     "strict": true,
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "removeComments": true,
     "sourceMap": true,
     "noLib": false,
@@ -14,9 +14,13 @@
     "declaration": true,
     "lib": ["ES2023", "DOM"],
     "outDir": "dist",
-    "types": ["chai", "node", "mocha", "express", "jsonwebtoken", "source-map-support", "supertest", "yargs"],
+    "types": ["chai", "node", "mocha"],
     "typeRoots": [
       "node_modules/@types"
     ]
-  }
+  },
+  "exclude": [
+    "node_modules",
+    "package"
+  ]
 }
