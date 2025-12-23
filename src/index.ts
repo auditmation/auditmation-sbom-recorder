@@ -1,3 +1,10 @@
+// Force esbuild to bundle pluralize (required by @zerobias-org/types-core-js)
+// CRITICAL: This MUST be the first import to ensure globalThis.__bundled_pluralize
+// is set before @zerobias-org/types-core-js initializes and tries to require('pluralize')
+import * as __bundled_pluralize from 'pluralize';
+// Expose pluralize globally so the banner's require proxy can use it
+(globalThis as any).__bundled_pluralize = __bundled_pluralize.default || __bundled_pluralize;
+
 import * as core from '@actions/core';
 import * as exec from '@actions/exec';
 import { getLogger } from '@auditmation/util-logger';
@@ -18,10 +25,6 @@ import * as fs from 'node:fs';
 import md5File from 'md5-file';
 import path from 'node:path';
 import * as https from 'node:https';
-// Force esbuild to bundle pluralize (required by @zerobias-org/types-core-js)
-import * as __bundled_pluralize from 'pluralize';
-// Expose pluralize globally so the banner's require proxy can use it
-(globalThis as any).__bundled_pluralize = __bundled_pluralize.default || __bundled_pluralize;
 
 const logger = getLogger('console', {}, process.env.LOG_LEVEL || 'debug');
 
