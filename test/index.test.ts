@@ -42,8 +42,8 @@ describe('Auditmation SBOM Recorder Test', function () {
       ...(process.env as { [key: string]: string }),
     };
 
-    // Note: We're executing the compiled dist/index.cjs, not the TS source
-    const indexPath = path.join(__dirname, '..', 'dist', 'index.cjs');
+    // Note: We're executing the compiled dist/index.js, not the TS source
+    const indexPath = path.join(__dirname, '..', 'dist', 'index.js');
     const exitCode = await exec.exec('node', [indexPath], { env });
 
     console.log('Exit code:', exitCode);

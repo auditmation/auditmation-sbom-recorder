@@ -27,4 +27,4 @@ inputs:
     default: '23cf2909-5c5e-5546-be5f-7f167d1f1c16'
 runs:
   using: 'node24'
-  main: 'dist/index.cjs'
+  main: 'dist/index.js'
