@@ -19,9 +19,9 @@ import md5File from 'md5-file';
 import path from 'node:path';
 import * as https from 'node:https';
 // Force esbuild to bundle pluralize (required by @zerobias-org/types-core-js)
-import pluralize from 'pluralize';
-// Ensure pluralize is bundled by referencing it
-(globalThis as any).__pluralize = pluralize;
+import * as __bundled_pluralize from 'pluralize';
+// Expose pluralize globally so the banner's require proxy can use it
+(globalThis as any).__bundled_pluralize = __bundled_pluralize.default || __bundled_pluralize;
 
 const logger = getLogger('console', {}, process.env.LOG_LEVEL || 'debug');
 
