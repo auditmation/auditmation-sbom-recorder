@@ -18,6 +18,10 @@ import * as fs from 'node:fs';
 import md5File from 'md5-file';
 import path from 'node:path';
 import * as https from 'node:https';
+// Force esbuild to bundle pluralize (required by @zerobias-org/types-core-js)
+import pluralize from 'pluralize';
+// Ensure pluralize is bundled by referencing it
+(globalThis as any).__pluralize = pluralize;
 
 const logger = getLogger('console', {}, process.env.LOG_LEVEL || 'debug');
 
