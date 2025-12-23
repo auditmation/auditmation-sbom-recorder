@@ -26,17 +26,5 @@ inputs:
     description: ID of the product to place the pipeline in
     default: '23cf2909-5c5e-5546-be5f-7f167d1f1c16'
 runs:
-  using: 'composite'
-  steps:
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '24'
-    - name: Install dependencies
-      shell: bash
-      run: |
-        cd ${{ github.action_path }}
-        npm ci --production
-    - name: Run action
-      shell: bash
-      run: node ${{ github.action_path }}/dist/index.js
+  using: 'node24'
+  main: 'dist/index.js'
