@@ -1,10 +1,11 @@
 {
   "name": "@auditmation/auditmation-sbom-recorder",
   "version": "0.0.1",
+  "type": "module",
   "description": "GitHub action for uploading sbom files to Auditmation",
   "main": "dist/index.js",
   "scripts": {
-    "build": "esbuild src/index.ts --bundle --minify --sourcemap --platform=node --target=es2020 --format=cjs --outfile=dist/index.js --banner:js=\"import{createRequire as __createRequire}from'module';import{fileURLToPath as __fileURLToPath}from'url';import{dirname as __dirname}from'path';var __filename=__fileURLToPath(import.meta.url);var __dirname2=__dirname(__filename);var require2=__createRequire(import.meta.url);\"",
+    "build": "esbuild src/index.ts --bundle --minify --sourcemap --platform=node --target=es2020 --format=esm --outfile=dist/index.js",
     "build:watch": "esbuild src/index.ts --bundle --sourcemap --platform=node --target=es2020 --outfile=dist/index.js --watch",
     "compile": "tsc",
     "compile:watch": "tsc --watch",
