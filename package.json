@@ -35,7 +35,7 @@
     "@auditmation/module-auditmation-auditmation-file-service": "^0.11.2",
     "@auditmation/util-logger": "4.0.10",
     "@zerobias-com/platform-sdk": "^1.0.8",
-    "@zerobias-org/types-core-js": "^1.2.0",
+    "@zerobias-org/types-core-js": "^1.2.2",
     "axios": "^0.27.2",
     "md5-file": "^5.0.0",
     "nock": "^14.0.10",
